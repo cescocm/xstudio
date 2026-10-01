@@ -18,6 +18,7 @@ if(WIN32)
 set(SOURCES
 	xstudio.cpp
 	xstudio_win_resource.rc
+	xstudio.manifest
 	../../../../ui/qml/xstudio/qml.qrc
 	)
 else()

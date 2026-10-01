@@ -1,0 +1,93 @@
+name: Windows portable build
+
+# Builds xSTUDIO on Windows and uploads a portable ZIP (plus the NSIS installer
+# when NSIS is present on the runner).
+#
+# The first run builds all vcpkg dependencies from source (ffmpeg, OpenImageIO,
+# ...) and can take several hours. Finished vcpkg packages are cached, so if the
+# first run times out, re-run the workflow: it resumes from the cached packages.
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build:
+    runs-on: windows-2022
+    timeout-minutes: 355
+
+    env:
+      VCPKG_COMMIT: c2aeddd80357b17592e59ad965d2adf65a19b22f
+      VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}\..\vcpkg_cache
+      QT_VERSION: "6.5.3"
+
+    steps:
+      - name: Checkout xSTUDIO
+        uses: actions/checkout@v4
+
+      - name: Checkout vcpkg (next to the repo, as CMakePresets.json expects)
+        shell: pwsh
+        run: |
+          git clone https://github.com/microsoft/vcpkg.git ..\vcpkg
+          git -C ..\vcpkg checkout $env:VCPKG_COMMIT
+          ..\vcpkg\bootstrap-vcpkg.bat -disableMetrics
+          New-Item -ItemType Directory -Force -Path $env:VCPKG_DEFAULT_BINARY_CACHE | Out-Null
+
+      - name: Restore vcpkg binary cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
+          key: vcpkg-win64-${{ hashFiles('vcpkg.json', 'cmake/vcpkg_overlay_ports/**') }}-${{ github.run_id }}
+          restore-keys: |
+            vcpkg-win64-${{ hashFiles('vcpkg.json', 'cmake/vcpkg_overlay_ports/**') }}-
+            vcpkg-win64-
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ env.QT_VERSION }}
+          host: windows
+          target: desktop
+          arch: win64_msvc2019_64
+          modules: qtimageformats qtpdf
+          cache: true
+
+      - name: Set up MSVC environment
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Configure (builds vcpkg dependencies)
+        shell: pwsh
+        timeout-minutes: 300
+        run: |
+          cmake --preset WinNinjaRelease `
+            -DQt6_DIR="$env:QT_ROOT_DIR/lib/cmake/Qt6" `
+            -DVCPKG_INSTALL_OPTIONS="--clean-after-build"
+
+      - name: Save vcpkg binary cache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
+          key: vcpkg-win64-${{ hashFiles('vcpkg.json', 'cmake/vcpkg_overlay_ports/**') }}-${{ github.run_id }}
+
+      - name: Build and package
+        shell: pwsh
+        run: cmake --build build --target package
+
+      - name: Upload portable ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: xSTUDIO-win64-portable
+          path: build/xSTUDIO-*-win64.zip
+          if-no-files-found: error
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: xSTUDIO-win64-installer
+          path: build/xSTUDIO-*-win64.exe
+          if-no-files-found: ignore

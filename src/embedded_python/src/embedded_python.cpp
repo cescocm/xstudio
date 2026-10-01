@@ -93,7 +93,8 @@ void EmbeddedPython::setup() {
                                                     .parent_path()
                                                     .string() +
                                                 "\\bin\\python3");
-            PyConfig_SetBytesString(&config, &config.home, p.string().data());
+            // Pass the path as UTF-16 so non-ASCII install locations work.
+            PyConfig_SetString(&config, &config.home, p.wstring().c_str());
             /*std::string xstudio_python_path;
             auto pythonpath_env = get_env("PYTHONPATH");
             if (pythonpath_env) {
