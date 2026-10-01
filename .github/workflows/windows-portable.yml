@@ -20,7 +20,7 @@ jobs:
 
     env:
       VCPKG_COMMIT: c2aeddd80357b17592e59ad965d2adf65a19b22f
-      VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}\..\vcpkg_cache
+      VCPKG_DEFAULT_BINARY_CACHE: C:\vcpkg_cache
       QT_VERSION: "6.5.3"
 
     steps:
