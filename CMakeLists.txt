@@ -324,6 +324,17 @@ if (WIN32)
   set(CPACK_PACKAGE_VERSION_MINOR ${CMAKE_MATCH_2})
   set(CPACK_PACKAGE_VERSION_PATCH ${CMAKE_MATCH_3})
 
+  # Always produce a portable ZIP (unzip anywhere, run bin\xstudio.exe).
+  # Also produce the NSIS installer when makensis is available.
+  set(_pf86 "ProgramFiles(x86)")
+  find_program(MAKENSIS_EXECUTABLE makensis
+    PATHS "$ENV{ProgramFiles}/NSIS" "$ENV{${_pf86}}/NSIS")
+  if(MAKENSIS_EXECUTABLE)
+    set(CPACK_GENERATOR "ZIP;NSIS")
+  else()
+    set(CPACK_GENERATOR "ZIP")
+  endif()
+
   set(CPACK_PACKAGE_VENDOR "DNEG / Academy Software Foundation")
   set (CPACK_NSIS_MUI_ICON
       "${CMAKE_CURRENT_SOURCE_DIR}/ui/icons\\\\xstudio_app.ico")

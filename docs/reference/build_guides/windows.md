@@ -84,11 +84,33 @@ Build:
 
     cmake --build build --target package
 
-> **Note:** `--target package` produces the NSIS installer and is significantly slower than a plain build. When iterating during development, drop the `--target package` flag and just run `cmake --build build`.
+> **Note:** `--target package` produces the portable ZIP (and the NSIS installer, if NSIS is installed) and is significantly slower than a plain build. When iterating during development, drop the `--target package` flag and just run `cmake --build build`.
 
 RelWithDebInfo and Debug variants are also available — see [CMakePresets.json](../../../CMakePresets.json) for the full list.
 
-If the build is successful, you should have an executable in the 'build' folder called something like 'xSTUDIO-1.2.0-win64.exe'. This can be executed to start the xSTUDIO installer.
+If the build is successful, the 'build' folder will contain:
+
+- `xSTUDIO-<version>-win64.zip` - a **portable** build (see below). Always produced.
+- `xSTUDIO-<version>-win64.exe` - the installer. Only produced when NSIS is installed.
+
+### Portable build (no installer)
+
+The ZIP contains a self-contained xSTUDIO: Qt, ffmpeg, Python and the Microsoft C++ runtime are bundled. To use it on any Windows 10 (1903 or later) / Windows 11 PC:
+
+1. Unzip it anywhere (Desktop, USB stick, network share). No administrator rights are needed.
+2. Run `bin\xstudio.exe` inside the unzipped folder.
+
+To build only the ZIP, without NSIS:
+
+    cmake --build build --target package
+
+Differences from the installer: no Start-menu shortcut, and `.xst` session files are not associated with xSTUDIO (open them from within xSTUDIO, or with "Open with..."). Because the executable is not code-signed, Windows SmartScreen may show "Windows protected your PC" the first time; click "More info" then "Run anyway".
+
+The target PC needs a GPU driver with OpenGL support (any current NVIDIA, AMD or Intel driver). Remote Desktop sessions and very old integrated GPUs may not work.
+
+### Building with GitHub Actions
+
+If you do not want to build locally, the workflow `.github/workflows/windows-portable.yml` builds the portable ZIP on a GitHub-hosted Windows machine. In your fork on GitHub, open the "Actions" tab, select "Windows portable build" and click "Run workflow". When it finishes, download the `xSTUDIO-win64-portable` artifact from the run page. The first run compiles all dependencies and may take several hours; if it times out, run it again, as finished dependencies are cached.
 
 ### Running xSTUDIO from the build tree (dev workflow)
 
