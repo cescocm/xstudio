@@ -112,6 +112,10 @@ The target PC needs a GPU driver with OpenGL support (any current NVIDIA, AMD or
 
 If you do not want to build locally, the workflow `.github/workflows/windows-portable.yml` builds the portable ZIP on a GitHub-hosted Windows machine. In your fork on GitHub, open the "Actions" tab, select "Windows portable build" and click "Run workflow". When it finishes, download the `xSTUDIO-win64-portable` artifact from the run page. The first run compiles all dependencies and may take several hours; if it times out, run it again, as finished dependencies are cached.
 
+To publish a GitHub Release instead, push a tag starting with `v` (for example `git tag v1.3.0-win && git push origin v1.3.0-win`). The workflow then attaches the ZIP and installer to a new Release, with notes linking to the exact source commit.
+
+Builds made by this workflow are labelled as unofficial (`-DXSTUDIO_UNOFFICIAL_BUILD=ON`): the package vendor is "Unofficial community build" and a `README_UNOFFICIAL.txt` is added. Every Windows package includes a `licenses` folder with xSTUDIO's `LICENSE` and `NOTICE.TXT`, the GPL v3 and LGPL v3 texts, `THIRD_PARTY.md`, and the copyright file of each bundled vcpkg library.
+
 ### Running xSTUDIO from the build tree (dev workflow)
 
 For a quick dev run without going through the installer, the build generates a launcher at `build/run_xstudio.bat`. Arguments are forwarded to xstudio:
