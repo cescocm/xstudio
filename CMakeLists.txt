@@ -335,7 +335,33 @@ if (WIN32)
     set(CPACK_GENERATOR "ZIP")
   endif()
 
-  set(CPACK_PACKAGE_VENDOR "DNEG / Academy Software Foundation")
+  # Licenses: xSTUDIO's own, the GPL/LGPL texts and third-party list, and the
+  # copyright file of every vcpkg package bundled in bin/.
+  install(FILES LICENSE NOTICE.TXT DESTINATION licenses)
+  install(FILES
+      packaging/windows/licenses/THIRD_PARTY.md
+      packaging/windows/licenses/GPL-3.0.txt
+      packaging/windows/licenses/LGPL-3.0.txt
+    DESTINATION licenses)
+  if(USE_VCPKG)
+    file(GLOB _vcpkg_copyrights
+      "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/share/*/copyright")
+    foreach(_copyright ${_vcpkg_copyrights})
+      get_filename_component(_pkg_dir "${_copyright}" DIRECTORY)
+      get_filename_component(_pkg "${_pkg_dir}" NAME)
+      install(FILES "${_copyright}" DESTINATION licenses/third_party/${_pkg})
+    endforeach()
+  endif()
+
+  # Builds made outside the official project (e.g. a fork's CI) must not
+  # present themselves as coming from DNEG / the ASF.
+  option(XSTUDIO_UNOFFICIAL_BUILD "Label the Windows package as an unofficial build" OFF)
+  if(XSTUDIO_UNOFFICIAL_BUILD)
+    set(CPACK_PACKAGE_VENDOR "Unofficial community build")
+    install(FILES packaging/windows/licenses/README_UNOFFICIAL.txt DESTINATION .)
+  else()
+    set(CPACK_PACKAGE_VENDOR "DNEG / Academy Software Foundation")
+  endif()
   set (CPACK_NSIS_MUI_ICON
       "${CMAKE_CURRENT_SOURCE_DIR}/ui/icons\\\\xstudio_app.ico")
   set (CPACK_PACKAGE_NAME "xSTUDIO")

@@ -6,6 +6,9 @@ name: Windows portable build
 # The first run builds all vcpkg dependencies from source (ffmpeg, OpenImageIO,
 # ...) and can take several hours. Finished vcpkg packages are cached, so if the
 # first run times out, re-run the workflow: it resumes from the cached packages.
+#
+# Pushing a tag starting with "v" (e.g. v1.3.0-win) also publishes a GitHub
+# Release with the ZIP and installer attached.
 
 on:
   workflow_dispatch:
@@ -17,6 +20,8 @@ jobs:
   build:
     runs-on: windows-2022
     timeout-minutes: 355
+    permissions:
+      contents: write
 
     env:
       VCPKG_COMMIT: c2aeddd80357b17592e59ad965d2adf65a19b22f
@@ -65,7 +70,8 @@ jobs:
         run: |
           cmake --preset WinNinjaRelease `
             -DQt6_DIR="$env:QT_ROOT_DIR/lib/cmake/Qt6" `
-            -DVCPKG_INSTALL_OPTIONS="--clean-after-build"
+            -DVCPKG_INSTALL_OPTIONS="--clean-after-build" `
+            -DXSTUDIO_UNOFFICIAL_BUILD=ON
 
       - name: Save vcpkg binary cache
         if: always()
@@ -91,3 +97,37 @@ jobs:
           name: xSTUDIO-win64-installer
           path: build/xSTUDIO-*-win64.exe
           if-no-files-found: ignore
+
+      - name: Write release notes
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        run: |
+          cat > release_notes.md <<EOF
+          **Unofficial, community-made Windows build.** Not made, endorsed or supported by DNEG or the Academy Software Foundation. Official project: https://github.com/AcademySoftwareFoundation/xstudio
+
+          ### How to use
+          1. Download the \`.zip\` file and unzip it anywhere. No installation or administrator rights are needed.
+          2. Run \`bin\\xstudio.exe\`.
+          3. If Windows SmartScreen shows "Windows protected your PC", click **More info**, then **Run anyway**. The program is not code-signed.
+
+          Requires 64-bit Windows 10 (version 1903 or later) or Windows 11, with an up-to-date GPU driver supporting OpenGL.
+
+          ### Licenses and source code
+          - xSTUDIO is licensed under the Apache License 2.0. The bundled FFmpeg is licensed under the GNU GPL v3, and Qt ${QT_VERSION} under the GNU LGPL v3. License texts and the list of bundled libraries are in the \`licenses\` folder inside the ZIP (see \`THIRD_PARTY.md\`).
+          - Source code of this build: https://github.com/${GITHUB_REPOSITORY}/tree/${GITHUB_SHA}
+          - Third-party libraries (including FFmpeg, x264, x265) were built from source with vcpkg at commit https://github.com/microsoft/vcpkg/tree/${VCPKG_COMMIT}, using the versions pinned in \`vcpkg.json\`.
+          - Qt source: https://download.qt.io/archive/qt/6.5/${QT_VERSION}/single/
+
+          Provided free of charge, without any warranty.
+          EOF
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          name: xSTUDIO ${{ github.ref_name }} for Windows (unofficial build)
+          body_path: release_notes.md
+          files: |
+            build/xSTUDIO-*-win64.zip
+            build/xSTUDIO-*-win64.exe
+          fail_on_unmatched_files: false
